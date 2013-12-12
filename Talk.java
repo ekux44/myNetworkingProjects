@@ -30,19 +30,20 @@ public class Talk {
 							"\nTalk is a simple bidirectional networked chat program." +
 							"\n" +
 							"\nTalk -h [hostname|IPaddress] [-p portnumber] \tto start in client mode" +
-							"\nTalk -s [-p portnumber] \tto start in server mode" +
+							"\nTalk -s [-p portnumber]                      \tto start in server mode" +
 							"\nTalk -a [hostname|IPaddress] [-p portnumber] \tto start in automode" +
-							"\nTalk -help\t shows this page");
+							"\nTalk -help                                   \tto show this page");
 					break parse;
-				default : out.println("Invalid flag. See Talk -help");
+				default : 
+					out.println("Invalid flag. See Talk -help");
+					break parse;
 			}
-			if(index<args.length){
-				index++;
-				if(args[index].equals("-p")){
-					index++;
+			if(index+1<args.length){
+				if(args[index+1].equals("-p")){
+					index+=2;
 					if(index<args.length){
 						try {
-							portnumber = Integer.parseInt(args[2]);
+							portnumber = Integer.parseInt(args[index]);
 						} catch (NumberFormatException e){
 							out.println("Invalid portnumber. See Talk -help");
 							break parse;
@@ -53,14 +54,14 @@ public class Talk {
 						break parse;
 					}
 					
-				} else if(tMode == Mode.Client || tMode == Mode.Auto){
-					hostnameOrIP = args[1];
+				} else if (tMode == Mode.Client || tMode == Mode.Auto) {
 					index++;
-					if(index<args.length && args[index].equals("-p")){
-						index++;
+					hostnameOrIP = args[1];
+					if(index+1<args.length && args[index+1].equals("-p")){
+						index+=2;
 						if(index<args.length){
 							try {
-								portnumber = Integer.parseInt(args[2]);
+								portnumber = Integer.parseInt(args[index]);
 							} catch (NumberFormatException e){
 								out.println("Invalid portnumber. See Talk -help");
 								break parse;
@@ -69,15 +70,12 @@ public class Talk {
 						else{
 							out.println("Missing portnumber. See Talk -help");
 							break parse;
-						}
-						
+						}	
 					}
-				} else{
-					out.println("Inavlid flag. See Talk -help");
-				}
+				} 
 			}
-			if(index+1>args.length){
-				out.println("Invalid input. See Talk - help");
+			if(index+1<args.length){
+				out.println("Invalid input. See Talk -help");
 			}
 			else{
 				Talk t = new Talk(tMode, hostnameOrIP, portnumber);
@@ -91,7 +89,13 @@ public class Talk {
 	}
 	
 	public Talk(Mode t, String hostnameOrIP, Integer portNumber){
-		System.out.println(t.toString());
+		if(portNumber==null)
+			portNumber = 12987;
 		
+		
+		out.println(t.toString());
+		if(hostnameOrIP!=null)
+			out.println(hostnameOrIP);
+		out.println(portNumber);
 	}
 }
