@@ -90,18 +90,23 @@ public class Talk {
 		Client, Server, Auto
 	}
 	
-	public Talk(Mode t, String hostnameOrIP, Integer portNumber){
-		if(portNumber==null)
-			portNumber = 12987;
-		
-//		out.println(t.toString());
-//		if(hostnameOrIP!=null)
-//			out.println(hostnameOrIP);
-//		out.println(portNumber);
+	public Talk(Mode t, String serverName, Integer serverPortNumber){
+		if(serverPortNumber==null)
+			serverPortNumber = 12987;
 		
 		switch (t){
-			case Client: clientMode(hostnameOrIP,portNumber);
-			case Server: serverMode(portNumber);
+			case Client: 
+				if(!clientMode(serverName, serverPortNumber))
+					out.println("Client unable to communicate with server");
+				break;
+			case Server: 
+				if(!serverMode(serverPortNumber))
+					out.println("Server unable to listen on the specified port");
+				break;
+			case Auto: 
+				if(!clientMode(serverName, serverPortNumber))
+					if(!serverMode(serverPortNumber))
+						out.println("Server unable to listen on the specified port");
 		}
 		
 	}
@@ -110,69 +115,58 @@ public class Talk {
 		String message = null;
 		try{
 			Socket socket = new Socket(serverName, portNumber);
-			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-			PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+			BufferedReader kbReader = new BufferedReader(new InputStreamReader(in));
+			PrintWriter netWriter = new PrintWriter(socket.getOutputStream(), true);
+			BufferedReader netReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			
 			while(true){
-				message = reader.readLine();
-				writer.println(message);
+				
+				if(netReader.ready()){
+					message = netReader.readLine();
+					out.println("[remote]"+message);
+				} else if (kbReader.ready()){
+					message = kbReader.readLine();
+					if(message.equals("STATUS")){
+						out.println("local address:port\t"+socket.getLocalSocketAddress());
+						out.println("remote address:port\t"+ socket.getRemoteSocketAddress());
+						
+					} else
+						netWriter.println(message);
+				}
 			}
 		} catch(UnknownHostException e){
-			out.println("Unknown host:"+serverName);
-			exit(1);
+			return false;
 		} catch(IOException e){
-			out.println("No I/O");
-			exit(1);
+			return false;
 		}
-		
-		return true;
 	}
 	
 	public boolean serverMode(Integer serverPortNumber){
-		BufferedReader reader = null;
 		String message = null;
-		Socket client = null;
-		ServerSocket server = null;
 		try {
-			server = new ServerSocket(serverPortNumber);
-			out.println("Server listening on port "+serverPortNumber);
-		} catch (IOException e) {
-			out.println("Accept failed on port "+serverPortNumber);
-			exit(-1);
-		}
-		try {
-			client = server.accept();
-			out.println("Server accepted connection from "+client.getInetAddress());
-		} catch(IOException e){
-			out.println("Accept failed on port "+serverPortNumber);
-			exit(-1);
-		}
-		try{
-			reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
-		} catch(IOException e){
-			out.println("Couldn't get an inputStream for the Client");
-			exit(-1);
-		}
-		try{
+			ServerSocket server = new ServerSocket(serverPortNumber);
+			Socket socket = server.accept();
+			BufferedReader netReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			BufferedReader kbReader = new BufferedReader(new InputStreamReader(in));
+			PrintWriter netWriter = new PrintWriter(socket.getOutputStream(), true);
 			while(true){
-				if(reader.ready()){
-					message = reader.readLine();
-					out.println(message);
+				if(netReader.ready()){
+					message = netReader.readLine();
+					out.println("[remote]"+message);
+				} else if (kbReader.ready()){
+					message = kbReader.readLine();
+					if(message.equals("STATUS")){
+						
+						out.println("local address:port\t"+socket.getLocalSocketAddress());
+						out.println("remote address:port\t"+ socket.getRemoteSocketAddress());
+					} else
+						netWriter.println(message);
 				}
 			}
 		} catch(IOException e){
-			out.println("Read failed");
-			exit(-1);
+			return false;
 		}
-		return true;
 	}
 	
 }
-
-
-
-
-
-
-
-
 
