@@ -1,4 +1,6 @@
 import static java.lang.System.*;
+import java.io.*;
+import java.net.*;
 
 public class Talk {
 	
@@ -92,10 +94,85 @@ public class Talk {
 		if(portNumber==null)
 			portNumber = 12987;
 		
+//		out.println(t.toString());
+//		if(hostnameOrIP!=null)
+//			out.println(hostnameOrIP);
+//		out.println(portNumber);
 		
-		out.println(t.toString());
-		if(hostnameOrIP!=null)
-			out.println(hostnameOrIP);
-		out.println(portNumber);
+		switch (t){
+			case Client: clientMode(hostnameOrIP,portNumber);
+			case Server: serverMode(portNumber);
+		}
+		
 	}
+	
+	public boolean clientMode(String serverName, Integer portNumber){
+		String message = null;
+		try{
+			Socket socket = new Socket(serverName, portNumber);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+			PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+			while(true){
+				message = reader.readLine();
+				writer.println(message);
+			}
+		} catch(UnknownHostException e){
+			out.println("Unknown host:"+serverName);
+			exit(1);
+		} catch(IOException e){
+			out.println("No I/O");
+			exit(1);
+		}
+		
+		return true;
+	}
+	
+	public boolean serverMode(Integer serverPortNumber){
+		BufferedReader reader = null;
+		String message = null;
+		Socket client = null;
+		ServerSocket server = null;
+		try {
+			server = new ServerSocket(serverPortNumber);
+			out.println("Server listening on port "+serverPortNumber);
+		} catch (IOException e) {
+			out.println("Accept failed on port "+serverPortNumber);
+			exit(-1);
+		}
+		try {
+			client = server.accept();
+			out.println("Server accepted connection from "+client.getInetAddress());
+		} catch(IOException e){
+			out.println("Accept failed on port "+serverPortNumber);
+			exit(-1);
+		}
+		try{
+			reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+		} catch(IOException e){
+			out.println("Couldn't get an inputStream for the Client");
+			exit(-1);
+		}
+		try{
+			while(true){
+				if(reader.ready()){
+					message = reader.readLine();
+					out.println(message);
+				}
+			}
+		} catch(IOException e){
+			out.println("Read failed");
+			exit(-1);
+		}
+		return true;
+	}
+	
 }
+
+
+
+
+
+
+
+
+
