@@ -80,10 +80,9 @@ public class Talk {
 				out.println("Invalid input. See Talk -help");
 			}
 			else{
-				Talk t = new Talk(tMode, hostnameOrIP, portnumber);
+				new Talk(tMode, hostnameOrIP, portnumber);
 			}
 		}
-		
 	}
 	
 	enum Mode{
@@ -96,40 +95,42 @@ public class Talk {
 		
 		switch (t){
 			case Client: 
-				if(!clientMode(serverName, serverPortNumber))
+				if(!talk(Mode.Client, serverPortNumber, serverName))
 					out.println("Client unable to communicate with server");
 				break;
 			case Server: 
-				if(!serverMode(serverPortNumber))
+				if(!talk(Mode.Server, serverPortNumber, serverName))
 					out.println("Server unable to listen on the specified port");
 				break;
 			case Auto: 
-				if(!clientMode(serverName, serverPortNumber))
-					if(!serverMode(serverPortNumber))
+				if(!talk(Mode.Client, serverPortNumber, serverName))
+					if(!talk(Mode.Server, serverPortNumber, serverName))
 						out.println("Server unable to listen on the specified port");
 		}
-		
 	}
 	
-	public boolean clientMode(String serverName, Integer portNumber){
+	public boolean talk(Mode mode, Integer serverPortNumber, String serverName){
 		String message = null;
-		try{
-			Socket socket = new Socket(serverName, portNumber);
+		try {
+			Socket socket;
+			if(mode==Mode.Server){
+				ServerSocket server = new ServerSocket(serverPortNumber);
+				socket = server.accept();
+			}else{
+				socket = new Socket(serverName, serverPortNumber);
+			}
+			BufferedReader netReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			BufferedReader kbReader = new BufferedReader(new InputStreamReader(in));
 			PrintWriter netWriter = new PrintWriter(socket.getOutputStream(), true);
-			BufferedReader netReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			
 			while(true){
-				
 				if(netReader.ready()){
 					message = netReader.readLine();
 					out.println("[remote]"+message);
 				} else if (kbReader.ready()){
 					message = kbReader.readLine();
-					if(message.equals("STATUS")){
+					if(message.equals("STATUS")){						
 						out.println("local address:port\t"+socket.getLocalSocketAddress());
 						out.println("remote address:port\t"+ socket.getRemoteSocketAddress());
-						
 					} else
 						netWriter.println(message);
 				}
@@ -140,33 +141,5 @@ public class Talk {
 			return false;
 		}
 	}
-	
-	public boolean serverMode(Integer serverPortNumber){
-		String message = null;
-		try {
-			ServerSocket server = new ServerSocket(serverPortNumber);
-			Socket socket = server.accept();
-			BufferedReader netReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			BufferedReader kbReader = new BufferedReader(new InputStreamReader(in));
-			PrintWriter netWriter = new PrintWriter(socket.getOutputStream(), true);
-			while(true){
-				if(netReader.ready()){
-					message = netReader.readLine();
-					out.println("[remote]"+message);
-				} else if (kbReader.ready()){
-					message = kbReader.readLine();
-					if(message.equals("STATUS")){
-						
-						out.println("local address:port\t"+socket.getLocalSocketAddress());
-						out.println("remote address:port\t"+ socket.getRemoteSocketAddress());
-					} else
-						netWriter.println(message);
-				}
-			}
-		} catch(IOException e){
-			return false;
-		}
-	}
-	
 }
 
