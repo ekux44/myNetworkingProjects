@@ -80,7 +80,24 @@ public class Talk {
 				out.println("Invalid input. See Talk -help");
 			}
 			else{
-				new Talk(tMode, hostnameOrIP, portnumber);
+				//new Talk(tMode, hostnameOrIP, portnumber);
+				if(portnumber==null)
+					portnumber = 12987;
+				
+				switch (tMode){
+					case Client: 
+						if(!talk(Mode.Client, portnumber, hostnameOrIP))
+							out.println("Client unable to communicate with server");
+						break;
+					case Server: 
+						if(!talk(Mode.Server, portnumber, hostnameOrIP))
+							out.println("Server unable to listen on the specified port");
+						break;
+					case Auto: 
+						if(!talk(Mode.Client, portnumber, hostnameOrIP))
+							if(!talk(Mode.Server, portnumber, hostnameOrIP))
+								out.println("Server unable to listen on the specified port");
+				}
 			}
 		}
 	}
@@ -89,35 +106,17 @@ public class Talk {
 		Client, Server, Auto
 	}
 	
-	public Talk(Mode t, String serverName, Integer serverPortNumber){
-		if(serverPortNumber==null)
-			serverPortNumber = 12987;
-		
-		switch (t){
-			case Client: 
-				if(!talk(Mode.Client, serverPortNumber, serverName))
-					out.println("Client unable to communicate with server");
-				break;
-			case Server: 
-				if(!talk(Mode.Server, serverPortNumber, serverName))
-					out.println("Server unable to listen on the specified port");
-				break;
-			case Auto: 
-				if(!talk(Mode.Client, serverPortNumber, serverName))
-					if(!talk(Mode.Server, serverPortNumber, serverName))
-						out.println("Server unable to listen on the specified port");
-		}
-	}
-	
-	public boolean talk(Mode mode, Integer serverPortNumber, String serverName){
+	public static boolean talk(Mode mode, Integer serverPortNumber, String serverName){
 		String message = null;
 		try {
 			Socket socket;
 			if(mode==Mode.Server){
 				ServerSocket server = new ServerSocket(serverPortNumber);
 				socket = server.accept();
-			}else{
+			}else if (mode==Mode.Client){
 				socket = new Socket(serverName, serverPortNumber);
+			}else{
+				return false;
 			}
 			BufferedReader netReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			BufferedReader kbReader = new BufferedReader(new InputStreamReader(in));
@@ -142,4 +141,3 @@ public class Talk {
 		}
 	}
 }
-
