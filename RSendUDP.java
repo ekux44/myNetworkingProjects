@@ -9,19 +9,16 @@ import kuxhausen.networks.Packet;
 import kuxhausen.networks.Packet.SenderPacket;
 
 public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
-	
-	static final String SERVER = "localhost";
-	static final int PORT = 32456;
 
 	public static void main(String[] args)
 	{
 		RSendUDP sender = new RSendUDP();
-		sender.setMode(2);
+		sender.setMode(0);
 		sender.setModeParameter(512);
 		sender.setTimeout(10000);
 		sender.setFilename("important.txt");
 		sender.setLocalPort(23456);
-		sender.setReceiver(new InetSocketAddress("172.17.34.56",32456));
+		sender.setReceiver(new InetSocketAddress("localhost",32456));
 		sender.sendFile();
 	}
 
@@ -93,14 +90,13 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 					if(p.isAck){
 						data[p.sequenceNumber].Acked = true;
 						checkUpdatelAckedSequence();
+						
+
+						System.out.println(" Recieved ACK number"+" from " +packet.getAddress().getHostAddress());
 					}
 				}
 				
 			}
-			
-			byte [] buffer = ("Hello World").getBytes();
-			socket.send(new DatagramPacket(buffer, buffer.length,
- 				InetAddress.getByName(SERVER), PORT));
 		}
 			catch(Exception e){ e.printStackTrace();
 		}
@@ -129,9 +125,10 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 		return ("Hellow World").getBytes();
 	}
 	private SenderPacket[] getSegmentedMessage(byte[] message, int mtu){
-		int numSegments = (int)Math.ceil(mtu/(double)message.length);
+		int numSegments = (int)Math.ceil(message.length/(double)mtu);
 		SenderPacket[] output = new SenderPacket[numSegments];
 		for(int i = 0; i< numSegments; i++){
+			System.out.println("getSegmentMessage num"+i+"out of :"+numSegments);
 			byte[] data = Arrays.copyOfRange(message, i*mtu, Math.min((i+1)*mtu, message.length));
 			output[i] = new SenderPacket(data, i, (i==numSegments-1), false);
 		}

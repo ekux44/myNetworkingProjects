@@ -3,53 +3,63 @@ import java.net.InetSocketAddress;
 
 import edu.utulsa.unet.UDPSocket; //import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import kuxhausen.networks.Packet;
 
 public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
-	static final int PORT = 32456;
 	
 	public static void main(String[] args)
 	{
 		RReceiveUDP reciever = new RReceiveUDP();
-		reciever.setMode(2);
+		reciever.setMode(0);
 		reciever.setModeParameter(512);
 		reciever.setFilename("less_important.txt");
 		reciever.setLocalPort(32456);
 		reciever.receiveFile();
 	}
-	@Override
+	
+	int reciever = 12987;
+	
 	public int getLocalPort() {
-		// TODO Auto-generated method stub
-		return 0;
+		return reciever;
 	}
-	@Override
-	public boolean setLocalPort(int arg0) {
-		// TODO Auto-generated method stub
+
+	public boolean setLocalPort(int portNum) {
+		if(portNum>=0){
+			reciever = portNum;
+			return true;
+		}
 		return false;
 	}
 	
-	Mode mode = Mode.StopAndWait;
-	long slidingWindowSize = 0;
-	/** in miliseconds **/
-	long timeOut = 1000;
-	int sendPort = 12987;
-	InetSocketAddress reciever;
-	String filename;
+	InetSocketAddress sender;
+	int mtu;
+	ArrayList<byte[]> data = new ArrayList<byte[]>();	
 	
 	@Override
 	public boolean receiveFile() {
 		try
 		{
-			byte [] buffer = new byte[25];
-			UDPSocket socket = new UDPSocket(PORT);
-			DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
-			socket.receive(packet);
+			UDPSocket socket = new UDPSocket(getLocalPort());
+			mtu = socket.getSendBufferSize();
+			boolean fin = false;
+			while(!fin){
+				byte[] buffer = new byte[mtu];
+				DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
+				socket.receive(packet);
+				Packet p = Packet.decodePacket(buffer, packet.getLength());
+				sender = new InetSocketAddress(packet.getAddress(),packet.getPort());
+				if(!p.isAck){
+					data.add(p.sequenceNumber, p.data);
+					System.out.println(" Recieved number"+" from " +packet.getAddress().getHostAddress());
+					
+					Packet ack = new Packet(null, p.sequenceNumber, false, true);
+					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, sender.getAddress(), sender.getPort()));
+				}
+			}	
 			
-			InetAddress client = packet.getAddress();
-			System.out.println(" Received'"+new String(buffer)+"' from " +packet.getAddress().getHostAddress());
-			System.out.println(" Received'"+new String(Arrays.copyOf(buffer, packet.getLength()))+"' from " +packet.getAddress().getHostAddress());
 		}
 		catch(Exception e){ e.printStackTrace(); 
 		}
