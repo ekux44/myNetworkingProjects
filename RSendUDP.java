@@ -70,19 +70,20 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 			mtu = socket.getSendBufferSize();
 			byte[] message = getMessage();
 			data = getSegmentedMessage(message, mtu);
-			lAckedSequence =0;
+			lAckedSequence = 0;
 			lSent = 0;
 			while(lAckedSequence<data.length){
-				if(windowGetFirstUnAckedTimeout(data)!=null){
-					int oldest = windowGetFirstUnAckedTimeout(data);
-					SenderPacket p = data[oldest];
-					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
-				} else if((lSent-lAckedSequence)<slidingWindowSize){
+				if((lSent-lAckedSequence)<slidingWindowSize && ((lSent+1)<data.length)){
 					SenderPacket p = data[(lSent+1)];
 					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
 					p.timeSent = System.currentTimeMillis();
 					lSent++;
-				} else {
+				} else if(windowGetFirstUnAckedTimeout(data)!=null){
+					int oldest = windowGetFirstUnAckedTimeout(data);
+					SenderPacket p = data[oldest];
+					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
+				}
+				else {
 					byte [] buffer = new byte[mtu];
 					DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
 					socket.receive(packet);
@@ -105,7 +106,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 	}
 	
 	private void checkUpdatelAckedSequence(){
-		for(int i = lAckedSequence; i<= lSent; i++){
+		for(int i = lAckedSequence; i< lSent; i++){
 			if(data[i].Acked)
 				lAckedSequence = i;
 			else

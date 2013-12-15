@@ -53,7 +53,7 @@ public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
 				sender = new InetSocketAddress(packet.getAddress(),packet.getPort());
 				if(!p.isAck){
 					data.add(p.sequenceNumber, p.data);
-					System.out.println(" Recieved number"+" from " +packet.getAddress().getHostAddress());
+					System.out.println(" Recieved number"+ p.sequenceNumber+" from " +packet.getAddress().getHostAddress());
 					
 					Packet ack = new Packet(null, p.sequenceNumber, false, true);
 					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, sender.getAddress(), sender.getPort()));
