@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 
@@ -8,7 +9,7 @@ import java.util.Arrays;
 import kuxhausen.networks.Packet;
 import kuxhausen.networks.Packet.SenderPacket;
 
-public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
+public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnable{
 
 	public static void main(String[] args)
 	{
@@ -62,16 +63,20 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 	SenderPacket[] data;
 	int lAckedSequence;
 	int lSent;
+	UDPSocket socket;
 	
 	@Override
 	public boolean sendFile() {
 		try {
-			UDPSocket socket = new UDPSocket(getLocalPort());
+			socket = new UDPSocket(getLocalPort());
 			mtu = socket.getSendBufferSize();
 			byte[] message = getMessage();
 			data = getSegmentedMessage(message);
 			lAckedSequence = -1;
 			lSent = -1;
+			
+			new Thread(this).start();
+			
 			while(lAckedSequence<(data.length-1)){
 				if((lSent-lAckedSequence)<slidingWindowSize && ((lSent+1)<data.length)){
 					SenderPacket p = data[(lSent+1)];
@@ -88,19 +93,6 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
 					System.out.println("Message "+oldest+" sent with "+p.data.length+" byes of actual data");
 				} 
-				else {
-					byte [] buffer = new byte[mtu];
-					DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
-		System.out.println("trying to recieve ack");
-					socket.receive(packet);
-					Packet p = Packet.decodePacket(buffer, packet.getLength());
-					if(p.isAck){
-						data[p.sequenceNumber].Acked = true;
-						checkUpdatelAckedSequence();
-						
-						System.out.println("Message "+p.sequenceNumber+" acknowledged");
-					}
-				}
 				
 			}
 		}
@@ -110,7 +102,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 		return false;
 	}
 	
-	private void checkUpdatelAckedSequence(){
+	private synchronized void checkUpdatelAckedSequence(){
 		for(int i = Math.max(0, lAckedSequence); i<= lSent; i++){
 			if(data[i].Acked)
 				lAckedSequence = i;
@@ -119,7 +111,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 		}
 	}
 	
-	private Integer windowGetFirstUnAckedTimeout(){
+	private synchronized Integer windowGetFirstUnAckedTimeout(){
 		for(int i = Math.max(0, lAckedSequence); i<=lSent; i++){
 			if(data[i].Acked==false && ((System.currentTimeMillis()-data[i].timeSent)>this.timeOut))
 				return i;
@@ -127,10 +119,10 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 		return null;
 	}
 	
-	private byte[] getMessage(){
+	private synchronized byte[] getMessage(){
 		return ("Hellow World").getBytes();
 	}
-	private SenderPacket[] getSegmentedMessage(byte[] message){
+	private synchronized SenderPacket[] getSegmentedMessage(byte[] message){
 		int mdu = mtu-5;
 		int numSegments = (int)Math.ceil(message.length/((double)mdu));
 		SenderPacket[] output = new SenderPacket[numSegments];
@@ -140,6 +132,28 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 			output[i] = new SenderPacket(data, i, (i==numSegments-1), false);
 		}
 		return output;
+	}
+
+	@Override
+	public void run() {
+		while(lAckedSequence<(data.length-1)){
+			byte [] buffer = new byte[mtu];
+			DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
+			System.out.println("trying to recieve ack");
+			try {
+				socket.receive(packet);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Packet p = Packet.decodePacket(buffer, packet.getLength());
+			if(p.isAck){
+				data[p.sequenceNumber].Acked = true;
+				checkUpdatelAckedSequence();
+				
+				System.out.println("Message "+p.sequenceNumber+" acknowledged");
+			}
+		}
 	}
 	
 	

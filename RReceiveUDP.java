@@ -46,7 +46,7 @@ public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
 			UDPSocket socket = new UDPSocket(getLocalPort());
 			mtu = socket.getSendBufferSize();
 			boolean fin = false;
-			while(!fin || dataSequenceHasEmptySpots()){
+			while(!fin || dataSequenceHasEmptySpots()&&fin){
 				
 		System.out.println("trying to recieve");		
 				byte[] buffer = new byte[mtu];
@@ -63,12 +63,13 @@ public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
 					data.set(p.sequenceNumber, p.data);
 					System.out.println("Message "+ p.sequenceNumber+" recieved with "+p.data.length+" bytes of actual data");
 					
-					Packet ack = new Packet(new byte[0], p.sequenceNumber, false, true);
+					if(p.isLast)
+						fin = true;
+					
+					Packet ack = new Packet(new byte[0], p.sequenceNumber, fin, true);
 					socket.send(new DatagramPacket(ack.toBytes(), ack.toBytes().length, sender.getAddress(), sender.getPort()));
 					System.out.println("Message "+p.sequenceNumber+" acknowledgement sent");
 					
-					if(p.isLast)
-						fin = true;
 				}
 			}
 			
