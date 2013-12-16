@@ -1,3 +1,5 @@
+import java.awt.Image;
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -7,6 +9,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Scanner;
+
+import javax.imageio.ImageIO;
 
 import static java.lang.System.*;
 
@@ -131,13 +135,14 @@ public class HttpServer implements Runnable{
             		"Content-Type: "+getTypeOfResource(requestURI)+"\n"+
             		"\n");
             System.out.println(headerString);
+            headerString+=new String(body);
             byte[] header = headerString.getBytes();
-            if(statusCode==200 && method.equals("GET:")){
+/*            if(statusCode==200 && method.equals("GET:")){
             	message = new byte[header.length+body.length];
             	ByteBuffer buf = ByteBuffer.wrap(message);
             	buf.put(header);
             	buf.put(body);
-            }else{
+            }else*/{ 
             	message = header;
             }
             output.write(message);
@@ -155,7 +160,8 @@ public class HttpServer implements Runnable{
 				System.out.println("attempting to access nesting folder");
 				return null; //file is in a subdirectory (not allowed, so 404)
 			}
-			FileInputStream fb = new FileInputStream ("/public_html"+requestURI);
+			FileInputStream fb = new FileInputStream ("public_html"+requestURI);			
+
 			byte[] result = new byte[fb.available()];
 			fb.read(result);
 			return result;
