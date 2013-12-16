@@ -1,11 +1,10 @@
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 
 import edu.utulsa.unet.UDPSocket; //import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 
 public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
@@ -86,6 +85,11 @@ public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
 
 			Long stopTime = System.currentTimeMillis();
 			System.out.println("Successfully transferred "+this.filename+" ("+message.length+" bytes) in "+((stopTime-startTime)/1000.0)+"seconds");
+			
+			
+			PrintWriter writer = new PrintWriter(this.filename);
+			writer.print(new String(message));
+			writer.close();
 			
 		}
 		catch(Exception e){ e.printStackTrace(); 

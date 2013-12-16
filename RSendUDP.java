@@ -1,10 +1,12 @@
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 
 import edu.utulsa.unet.UDPSocket; //import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.Scanner;
 
 
 public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnable{
@@ -123,7 +125,18 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 	}
 	
 	private synchronized byte[] getMessage(){
-		return ("How now brown cow. How now brown cow. How now brown cow.").getBytes();
+		String message = "";
+		try {			
+			Scanner in = new Scanner(new FileReader(this.filename));
+			while(in.hasNextLine()){
+				message+=in.nextLine()+"\n";
+			}
+			in.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return message.getBytes();
 	}
 	private synchronized SenderPacket[] getSegmentedMessage(byte[] message){
 		int mdu = mtu-5;
