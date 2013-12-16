@@ -13,9 +13,9 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 	public static void main(String[] args)
 	{
 		RSendUDP sender = new RSendUDP();
-		sender.setMode(0);
+		sender.setMode(1);
 		sender.setModeParameter(512);
-		sender.setTimeout(10000);
+		sender.setTimeout(1000);
 		sender.setFilename("important.txt");
 		sender.setLocalPort(23456);
 		sender.setReceiver(new InetSocketAddress("localhost",32456));
@@ -69,31 +69,36 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 			UDPSocket socket = new UDPSocket(getLocalPort());
 			mtu = socket.getSendBufferSize();
 			byte[] message = getMessage();
-			data = getSegmentedMessage(message, mtu);
-			lAckedSequence = 0;
-			lSent = 0;
-			while(lAckedSequence<data.length){
+			data = getSegmentedMessage(message);
+			lAckedSequence = -1;
+			lSent = -1;
+			while(lAckedSequence<(data.length-1)){
 				if((lSent-lAckedSequence)<slidingWindowSize && ((lSent+1)<data.length)){
 					SenderPacket p = data[(lSent+1)];
 					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
 					p.timeSent = System.currentTimeMillis();
 					lSent++;
-				} else if(windowGetFirstUnAckedTimeout(data)!=null){
-					int oldest = windowGetFirstUnAckedTimeout(data);
+					
+					System.out.println("Message "+lSent+" sent with "+p.data.length+" byes of actual data");
+					
+				} else if(windowGetFirstUnAckedTimeout()!=null){
+					int oldest = windowGetFirstUnAckedTimeout();
+					System.out.println("Message "+oldest+" timed-out");
 					SenderPacket p = data[oldest];
 					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
-				}
+					System.out.println("Message "+oldest+" sent with "+p.data.length+" byes of actual data");
+				} 
 				else {
 					byte [] buffer = new byte[mtu];
 					DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
+		System.out.println("trying to recieve ack");
 					socket.receive(packet);
 					Packet p = Packet.decodePacket(buffer, packet.getLength());
 					if(p.isAck){
 						data[p.sequenceNumber].Acked = true;
 						checkUpdatelAckedSequence();
 						
-
-						System.out.println(" Recieved ACK number"+" from " +packet.getAddress().getHostAddress());
+						System.out.println("Message "+p.sequenceNumber+" acknowledged");
 					}
 				}
 				
@@ -106,7 +111,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 	}
 	
 	private void checkUpdatelAckedSequence(){
-		for(int i = lAckedSequence; i< lSent; i++){
+		for(int i = Math.max(0, lAckedSequence); i<= lSent; i++){
 			if(data[i].Acked)
 				lAckedSequence = i;
 			else
@@ -114,9 +119,9 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 		}
 	}
 	
-	private Integer windowGetFirstUnAckedTimeout(SenderPacket[] packets){
-		for(int i = lAckedSequence; i<=lSent; i++){
-			if(packets[i].Acked==false && ((System.currentTimeMillis()-packets[i].timeSent)>this.timeOut))
+	private Integer windowGetFirstUnAckedTimeout(){
+		for(int i = Math.max(0, lAckedSequence); i<=lSent; i++){
+			if(data[i].Acked==false && ((System.currentTimeMillis()-data[i].timeSent)>this.timeOut))
 				return i;
 		}
 		return null;
@@ -125,12 +130,13 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI{
 	private byte[] getMessage(){
 		return ("Hellow World").getBytes();
 	}
-	private SenderPacket[] getSegmentedMessage(byte[] message, int mtu){
-		int numSegments = (int)Math.ceil(message.length/(double)mtu);
+	private SenderPacket[] getSegmentedMessage(byte[] message){
+		int mdu = mtu-5;
+		int numSegments = (int)Math.ceil(message.length/((double)mdu));
 		SenderPacket[] output = new SenderPacket[numSegments];
 		for(int i = 0; i< numSegments; i++){
-			System.out.println("getSegmentMessage num"+i+"out of :"+numSegments);
-			byte[] data = Arrays.copyOfRange(message, i*mtu, Math.min((i+1)*mtu, message.length));
+			System.out.println("getSegmentMessage num "+i+" out of :"+numSegments);
+			byte[] data = Arrays.copyOfRange(message, i*mdu, Math.min((i+1)*mdu, message.length));
 			output[i] = new SenderPacket(data, i, (i==numSegments-1), false);
 		}
 		return output;

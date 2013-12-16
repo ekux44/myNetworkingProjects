@@ -22,8 +22,8 @@ public class Packet {
 			byte flags=0;
 			if(isAck)
 				flags+=1;
-			if(isLast);
-			flags+=2;
+			if(isLast)
+				flags+=2;
 			buf.put(flags);
 		}
 		buf.putInt(sequenceNumber);
@@ -38,7 +38,7 @@ public class Packet {
 		ByteBuffer b = ByteBuffer.wrap(encoded);
 		byte flags = b.get();
 		boolean	isAck = ((((int)flags)&1)==1);
-		boolean	isLast = ((((int)flags)&1)==2);		
+		boolean	isLast = ((((int)flags)&2)==2);		
 		int sequenceNumber = b.getInt();
 		b.get(data);
 		return new Packet(data, sequenceNumber, isLast, isAck);
