@@ -72,9 +72,11 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 			data = getSegmentedMessage(message);
 			lAckedSequence = -1;
 			lSent = -1;
+			System.out.println("Sending "+this.filename+" from "+socket.getLocalAddress().getHostAddress()+":"+this.getLocalPort()+" to "+reciever.toString()+" with "+message.length+" bytes");
+			System.out.println("Using "+mode.toString());
+			Long startTime = System.currentTimeMillis();
 			
 			new Thread(this).start();
-			
 			while(lAckedSequence<(data.length-1)){
 				if((lSent-lAckedSequence)<slidingWindowSize && ((lSent+1)<data.length)){
 					SenderPacket p = data[(lSent+1)];
@@ -93,6 +95,9 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 				} 
 				
 			}
+			
+			Long stopTime = System.currentTimeMillis();
+			System.out.println("Successfully transferred "+this.filename+" ("+message.length+" bytes) in "+((stopTime-startTime)/1000.0)+"seconds");
 		}
 			catch(Exception e){ e.printStackTrace();
 		}

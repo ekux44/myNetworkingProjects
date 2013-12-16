@@ -45,17 +45,21 @@ public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
 			UDPSocket socket = new UDPSocket(getLocalPort());
 			mtu = socket.getSendBufferSize();
 			boolean fin = false;
-			while(!fin || dataSequenceHasEmptySpots()&&fin){
-				
-		System.out.println("trying to recieve");		
+			
+			System.out.println("Reciving "+this.filename+" at "+socket.getLocalAddress().getCanonicalHostName()+":"+this.getLocalPort()+" using "+mode.toString());
+			Long startTime = System.currentTimeMillis();
+			
+			while(!fin || dataSequenceHasEmptySpots()&&fin){		
 				byte[] buffer = new byte[mtu];
 				DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
 				socket.receive(packet);
 				
-		System.out.println("recvieved something");
-				
 				Packet p = Packet.decodePacket(buffer, packet.getLength());
-				sender = new InetSocketAddress(packet.getAddress(),packet.getPort());
+				
+				if(sender==null){
+					sender = new InetSocketAddress(packet.getAddress(),packet.getPort());
+					System.out.println("Connection established from sender "+sender.toString());
+				}
 				if(!p.isAck){				
 					while((data.size()-1)<p.sequenceNumber)
 						data.add(null);
@@ -79,7 +83,9 @@ public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
 			ByteBuffer buf = ByteBuffer.wrap(message);
 			for(byte[] b: data)
 				buf.put(b);
-System.out.println("message="+ new String(message));
+
+			Long stopTime = System.currentTimeMillis();
+			System.out.println("Successfully transferred "+this.filename+" ("+message.length+" bytes) in "+((stopTime-startTime)/1000.0)+"seconds");
 			
 		}
 		catch(Exception e){ e.printStackTrace(); 
