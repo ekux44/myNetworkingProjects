@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import kuxhausen.networks.Packet;
 
 public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI{
 	

@@ -1,4 +1,4 @@
-package kuxhausen.networks;
+
 
 import java.nio.ByteBuffer;
 
@@ -44,14 +44,4 @@ public class Packet {
 		return new Packet(data, sequenceNumber, isLast, isAck);
 	}
 	
-	public static class SenderPacket extends Packet{
-		/** based on system.currentTimeMillis() **/
-		public long timeSent;
-		public boolean Acked;
-		
-		public SenderPacket(byte[] data, int sequenceNumber, boolean isLast, boolean isAck) {
-			super(data, sequenceNumber, isLast, isAck);
-		}
-		
-	}
 }

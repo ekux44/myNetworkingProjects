@@ -6,8 +6,6 @@ import edu.utulsa.unet.UDPSocket; //import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Arrays;
 
-import kuxhausen.networks.Packet;
-import kuxhausen.networks.Packet.SenderPacket;
 
 public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnable{
 
@@ -120,7 +118,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 	}
 	
 	private synchronized byte[] getMessage(){
-		return ("Hellow World").getBytes();
+		return ("How now brown cow. How now brown cow. How now brown cow.").getBytes();
 	}
 	private synchronized SenderPacket[] getSegmentedMessage(byte[] message){
 		int mdu = mtu-5;
@@ -156,5 +154,14 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 		}
 	}
 	
-	
+	public class SenderPacket extends Packet{
+		/** based on system.currentTimeMillis() **/
+		public long timeSent;
+		public boolean Acked;
+		
+		public SenderPacket(byte[] data, int sequenceNumber, boolean isLast, boolean isAck) {
+			super(data, sequenceNumber, isLast, isAck);
+		}
+		
+	}
 }
