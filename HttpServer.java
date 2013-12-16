@@ -48,16 +48,28 @@ public class HttpServer implements Runnable{
             byte[] body = null;
             
             try{
-            	
             	Scanner in = new Scanner(input);
+	            String request = "";            	
+            	String firstLine = in.nextLine();
+            	request+=firstLine+"\n";
+            	Scanner subLine = new Scanner(firstLine);
+	            method = subLine.next();
+	            requestURI = subLine.next();
 	            
-	            method = in.next();
-	            requestURI = in.next();
-	            
-	            String hostLine = in.nextLine();
-	            while(!hostLine.substring(0,5).equals("Host:") && in.hasNextLine()){
-	            	hostLine = in.nextLine();
+	            String hostLine = null;
+	            parseHeader: while(in.hasNextLine()){
+	            	String s = in.nextLine();
+	            	
+	            	if(s.length()>5 && s.substring(0,5).equals("Host:"))
+	            		hostLine = s;
+	            	request+=s+"\n";
+	            	
+	            	if(s.length()==0 || s.equals("\n"))
+	            		break parseHeader;
 	            }
+
+	            System.out.println(request);
+	            
 	            Scanner hostScan = new Scanner(hostLine);
 	            if(hostScan.next().equals("Host:")){
 	            	host = hostScan.next();
@@ -72,40 +84,38 @@ public class HttpServer implements Runnable{
             
             if(statusCode!=400){
             	switch(method){
-	            	case "GET:":
+	            	case "GET":
 	            		body = getResource(requestURI);
 	            		if(body==null)
 	            			statusCode= 404;
 	            		else{
 	            			statusCode = 200;
 	            		}
-	            		//TODO
 	            		break;
-	            	case "HEAD:":
+	            	case "HEAD":
 	            		body = getResource(requestURI);
 	            		if(body==null)
 	            			statusCode= 404;
 	            		else{
 	            			statusCode = 200;
 	            		}
-	            		//TODO
 	            		break;
-	            	case "OPTIONS:":
+	            	case "OPTIONS":
 	            		statusCode = 501;
 	            		break;
-	            	case "POST:":
+	            	case "POST":
 	            		statusCode = 501;
 	            		break;
-	            	case "PUT:":
+	            	case "PUT":
 	            		statusCode = 501;
 	            		break;
-	            	case "DELETE:":
+	            	case "DELETE":
 	            		statusCode = 501;
 	            		break;
-	            	case "TRACE:":
+	            	case "TRACE":
 	            		statusCode = 501;
 	            		break;
-	            	case "CONNECT:":
+	            	case "CONNECT":
 	            		statusCode = 501;
 	            		break;
 	            	default:
@@ -115,11 +125,13 @@ public class HttpServer implements Runnable{
             }
             
             byte[] message = null;
-            byte[] header =("HTTP/1.1 "+statusCode+" "+getReasonPhrase(statusCode)+"\n"+
+            String headerString =("HTTP/1.1 "+statusCode+" "+getReasonPhrase(statusCode)+"\n"+
             		"Server: cs4333httpserver/1.0.0\n"+
             		"Content-Length: "+getLengthOfResource(body)+"\n"+
             		"Content-Type: "+getTypeOfResource(requestURI)+"\n"+
-            		"\n").getBytes();
+            		"\n");
+            System.out.println(headerString);
+            byte[] header = headerString.getBytes();
             if(statusCode==200 && method.equals("GET:")){
             	message = new byte[header.length+body.length];
             	ByteBuffer buf = ByteBuffer.wrap(message);
@@ -139,15 +151,17 @@ public class HttpServer implements Runnable{
 	
 	public byte[] getResource(String requestURI){
 		try {
-			if(requestURI.substring(1).contains("/"))
+			if(requestURI.substring(1).contains("/")){
+				System.out.println("attempting to access nesting folder");
 				return null; //file is in a subdirectory (not allowed, so 404)
-			
+			}
 			FileInputStream fb = new FileInputStream ("/public_html"+requestURI);
 			byte[] result = new byte[fb.available()];
 			fb.read(result);
 			return result;
 			
 		} catch (IOException e) {
+			System.out.println("couldn't find:"+("/public_html"+requestURI));
 			return null;
 		}
 	}
