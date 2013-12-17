@@ -135,14 +135,14 @@ public class HttpServer implements Runnable{
             		"Content-Type: "+getTypeOfResource(requestURI)+"\n"+
             		"\n");
             System.out.println(headerString);
-            headerString+=new String(body);
+//            headerString+=new String(body);
             byte[] header = headerString.getBytes();
-/*            if(statusCode==200 && method.equals("GET:")){
+            if(statusCode==200 && method.equals("GET")){
             	message = new byte[header.length+body.length];
             	ByteBuffer buf = ByteBuffer.wrap(message);
             	buf.put(header);
             	buf.put(body);
-            }else*/{ 
+            }else{ 
             	message = header;
             }
             output.write(message);
