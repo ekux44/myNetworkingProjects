@@ -1,22 +1,16 @@
-import java.awt.Image;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Scanner;
 
-import javax.imageio.ImageIO;
-
 import static java.lang.System.*;
 
-
+/** 
+ * @author Eric Kuxhausen 
+ * @version 1.1.0
+ * **/
 public class HttpServer implements Runnable{
-
 	
 	public static void main(String[] args) {	
 		if(args.length!=1){
@@ -35,11 +29,11 @@ public class HttpServer implements Runnable{
 		}
 	}
 
-		Socket socket;
+	private Socket socket;
 
-		HttpServer(Socket csocket) {
-			this.socket = csocket;
-		}
+	HttpServer(Socket csocket) {
+		this.socket = csocket;
+	}
 	
 	@Override
 	public void run() {
@@ -135,7 +129,7 @@ public class HttpServer implements Runnable{
             		"Content-Type: "+getTypeOfResource(requestURI)+"\n"+
             		"\n");
             System.out.println(headerString);
-//            headerString+=new String(body);
+            
             byte[] header = headerString.getBytes();
             if(statusCode==200 && method.equals("GET")){
             	message = new byte[header.length+body.length];
@@ -149,7 +143,6 @@ public class HttpServer implements Runnable{
             output.close();
             input.close();
         } catch (IOException e) {
-            //report exception somewhere.
             e.printStackTrace();
         }
 	}
@@ -161,7 +154,6 @@ public class HttpServer implements Runnable{
 				return null; //file is in a subdirectory (not allowed, so 404)
 			}
 			FileInputStream fb = new FileInputStream ("public_html"+requestURI);			
-
 			byte[] result = new byte[fb.available()];
 			fb.read(result);
 			return result;
