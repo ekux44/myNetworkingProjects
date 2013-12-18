@@ -14,7 +14,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 	public static void main(String[] args)
 	{
 		RSendUDP sender = new RSendUDP();
-		sender.setMode(1);
+		sender.setMode(0);
 		sender.setModeParameter(512);
 		sender.setTimeout(1000);
 		sender.setFilename("important.txt");
@@ -64,6 +64,9 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 	int lAckedSequence;
 	int lSent;
 	UDPSocket socket;
+	boolean recievedLast = false;
+	boolean recieverFinished = false;
+	long lastFinSentTime = 0;
 	
 	@Override
 	public boolean sendFile() {
@@ -79,7 +82,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 			Long startTime = System.currentTimeMillis();
 			
 			new Thread(this).start();
-			while(lAckedSequence<(data.length-1)){
+			while(!recieverFinished){
 				if((lSent-lAckedSequence)<slidingWindowSize && ((lSent+1)<data.length)){
 					SenderPacket p = data[(lSent+1)];
 					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
@@ -94,14 +97,22 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 					SenderPacket p = data[oldest];
 					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
 					System.out.println("Message "+oldest+" sent with "+p.data.length+" byes of actual data");
-				} 
+				} else if(recievedLast && (System.currentTimeMillis()-lastFinSentTime)>this.getTimeout()){
+					
+					
+					SenderPacket p = new SenderPacket(new byte[0], -1, timeOut, true);
+					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
+					lastFinSentTime = System.currentTimeMillis();
+					System.out.println("FIN sent");
+				}
 				
 			}
 			
 			Long stopTime = System.currentTimeMillis();
 			System.out.println("Successfully transferred "+this.filename+" ("+message.length+" bytes) in "+((stopTime-startTime)/1000.0)+"seconds");
 		}
-			catch(Exception e){ e.printStackTrace();
+		catch(Exception e){ 
+			e.printStackTrace();
 		}
 
 		return false;
@@ -139,20 +150,20 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 		return message.getBytes();
 	}
 	private synchronized SenderPacket[] getSegmentedMessage(byte[] message){
-		int mdu = mtu-5;
+		int mdu = mtu-Packet.PACKET_HEADER_LENGTH;
 		int numSegments = (int)Math.ceil(message.length/((double)mdu));
 		SenderPacket[] output = new SenderPacket[numSegments];
 		for(int i = 0; i< numSegments; i++){
 			System.out.println("getSegmentMessage num "+i+" out of :"+numSegments);
 			byte[] data = Arrays.copyOfRange(message, i*mdu, Math.min((i+1)*mdu, message.length));
-			output[i] = new SenderPacket(data, i, (i==numSegments-1), false);
+			output[i] = new SenderPacket(data, i, timeOut, false);
 		}
 		return output;
 	}
 
 	@Override
 	public void run() {
-		while(lAckedSequence<(data.length-1)){
+		while(!recievedLast && lAckedSequence<(data.length-1)){
 			byte [] buffer = new byte[mtu];
 			DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
 			System.out.println("trying to recieve ack");
@@ -169,6 +180,24 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 				
 				System.out.println("Message "+p.sequenceNumber+" acknowledged");
 			}
+			if(p.isLast)
+				recievedLast = true;
+		}
+		while(!recieverFinished ){
+			byte [] buffer = new byte[mtu];
+			DatagramPacket packet = new DatagramPacket(buffer,buffer.length);
+			System.out.println("trying to recieve fin ack");
+			try {
+				socket.receive(packet);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Packet p = Packet.decodePacket(buffer, packet.getLength());
+			if(p.isAck && p.isFinished){
+				recieverFinished = true;
+				System.out.println("FIN acknowledged");
+			}
 		}
 	}
 	
@@ -177,8 +206,8 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 		public long timeSent;
 		public boolean Acked;
 		
-		public SenderPacket(byte[] data, int sequenceNumber, boolean isLast, boolean isAck) {
-			super(data, sequenceNumber, isLast, isAck);
+		public SenderPacket(byte[] data, int sequenceNumber, long timeout, boolean isFinished) {
+			super(data, sequenceNumber, timeout, isFinished, false , false);
 		}
 		
 	}
