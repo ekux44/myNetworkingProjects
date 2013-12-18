@@ -121,7 +121,7 @@ public class RReceiveUDP extends RUDP implements edu.utulsa.unet.RReceiveUDPI, R
 					socket.send(new DatagramPacket(ack.toBytes(), ack.toBytes().length, sender.getAddress(), sender.getPort()));
 					System.out.println("Fin Ack sent");
 					
-					finishedTimeout = System.currentTimeMillis(); //+ (timeout*2l);
+					finishedTimeout = System.currentTimeMillis() + (timeout*3l);
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

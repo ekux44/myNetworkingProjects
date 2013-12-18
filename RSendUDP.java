@@ -16,7 +16,7 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 		RSendUDP sender = new RSendUDP();
 		sender.setMode(0);
 		sender.setModeParameter(512);
-		sender.setTimeout(1000);
+		sender.setTimeout(500);
 		sender.setFilename("important.txt");
 		sender.setLocalPort(23456);
 		sender.setReceiver(new InetSocketAddress("localhost",32456));
@@ -83,21 +83,24 @@ public class RSendUDP extends RUDP implements edu.utulsa.unet.RSendUDPI, Runnabl
 			
 			new Thread(this).start();
 			while(!recieverFinished){
-				if((lSent-lAckedSequence)<slidingWindowSize && ((lSent+1)<data.length)){
-					SenderPacket p = data[(lSent+1)];
-					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
-					p.timeSent = System.currentTimeMillis();
-					lSent++;
-					
-					System.out.println("Message "+lSent+" sent with "+p.data.length+" byes of actual data");
-					
-				} else if(windowGetFirstUnAckedTimeout()!=null){
-					int oldest = windowGetFirstUnAckedTimeout();
-					System.out.println("Message "+oldest+" timed-out");
-					SenderPacket p = data[oldest];
-					socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
-					System.out.println("Message "+oldest+" sent with "+p.data.length+" byes of actual data");
-				} else if(recievedLast && (System.currentTimeMillis()-lastFinSentTime)>this.getTimeout()){
+				if(!recievedLast){
+					if((lSent-lAckedSequence)<slidingWindowSize && ((lSent+1)<data.length)){
+						SenderPacket p = data[(lSent+1)];
+						socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
+						p.timeSent = System.currentTimeMillis();
+						lSent++;
+						
+						System.out.println("Message "+lSent+" sent with "+p.data.length+" byes of actual data");
+						
+					} else if(windowGetFirstUnAckedTimeout()!=null){
+						int oldest = windowGetFirstUnAckedTimeout();
+						System.out.println("Message "+oldest+" timed-out");
+						SenderPacket p = data[oldest];
+						socket.send(new DatagramPacket(p.toBytes(), p.toBytes().length, reciever.getAddress(), reciever.getPort()));
+						System.out.println("Message "+oldest+" sent with "+p.data.length+" byes of actual data");
+					}
+				}
+				else if(recievedLast && (System.currentTimeMillis()-lastFinSentTime)>this.getTimeout()){
 					
 					
 					SenderPacket p = new SenderPacket(new byte[0], -1, timeOut, true);
