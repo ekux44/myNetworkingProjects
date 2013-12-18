@@ -68,13 +68,17 @@ public class HttpServer implements Runnable{
 
 	            System.out.println(request);
 	            
-	            Scanner hostScan = new Scanner(hostLine);
-	            if(hostScan.next().equals("Host:")){
-	            	host = hostScan.next();
+	            if(hostLine!=null){ 
+	            	Scanner hostScan = new Scanner(hostLine);
+	            	if(hostScan.hasNext() && hostScan.next().equals("Host:")){
+	            		host = hostScan.next();
+	            		hostScan.close();
+	            	} else{
+	            		statusCode = 400;
+	            	}
 	            }else{
 	            	statusCode = 400;
 	            }
-	            hostScan.close();
             } catch (Error e){
             	statusCode = 400;
             }
